@@ -173,7 +173,7 @@ pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(xyzrgb[:,:3])
 pcd.colors = o3d.utility.Vector3dVector(xyzrgb[:,3:])
 o3d.io.write_point_cloud(path+'/sample_data/data.ply',pcd)
-pcd_load = o3d.io.read_point_cloud(path+'/Result/data.ply')
+pcd_load = o3d.io.read_point_cloud(path+'/sample_data/data.ply')
 #o3d.visualization.draw_geometries([pcd_load])
 
 
