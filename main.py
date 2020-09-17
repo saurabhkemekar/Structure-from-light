@@ -69,7 +69,7 @@ if ret:
 fname = os.listdir(path+ "/sample_data/projector_calibration/")
 projector_points = []
 world_points = []
-for name in fname: 
+for name in fname:
      point = []
      if name[-4:] == '.png':
         img1 = cv2.imread(path + "/sample_data/projector_calibration/" + name)
@@ -77,26 +77,27 @@ for name in fname:
         img = ~img
         blur = cv2.GaussianBlur(img,(5,5),-1)
         img = cv2.addWeighted(img,1.5,blur,-0.5,0,img)
-        ret,corners = cv2.findChessboardCorners(img,(15,11),None)
+        ret,corners2 = cv2.findChessboardCorners(img,(15,11),None)
         if ret :
-            corners = cv2.cornerSubPix(img,corners,(11,11),(-1,-1),criteria)
-            corners = order_points(corners)
-            _ = cv2.drawChessboardCorners(img1,(15,11),corners,ret)
-            corners = cv2.convertPointsToHomogeneous(corners)
-            corners = corners.reshape(-1,3).T            
-            a = (inv_Hc @ corners).T
-            a[:,0] = a[:,0]/a[:,2]
-            a[:,0] = a[:,0]/a[:,2]
-            a[:,2] = 0
-            world_points.append(a)
+            corners2 = cv2.cornerSubPix(img,corners2,(11,11),(-1,-1),criteria)
+            corners2 = order_points(corners2)
+            _ = cv2.drawChessboardCorners(img1,(15,11),corners2,ret)
+            for corner in corners2:
+                b = cv2.convertPointsToHomogeneous(corner)
+                b= b.reshape(3,1)
+                a = Hc @ b
+                point.append(a)
+            points = cv2.convertPointsFromHomogeneous(np.array(point))
+            world_points.append(points)
             projector_points.append(img_points)
             cv2.imshow('img',img1)
             cv2.waitKey(1)
-
+world = []
+for p in world_points:
+    w = np.array([np.array([i[0][0],i[0][1],0],np.float32) for i in p],np.float32)
+    world.append(w)
 cv2.destroyAllWindows()
-print(np.array(world_points).shape)
-print(np.array(projector_points).shape)
-ret,mtx_p,dist_p,rvec_p,tvec_p = cv2.calibrateCamera(world_points,projector_points,(800,600),None,None)
+ret,mtx_p,dist_p,rvec_p,tvec_p = cv2.calibrateCamera(world,projector_points,(800,600),None,None)
 print(mtx_p, ret)
 
 img = cv2.imread(path +'/sample_data/projector_pose.png')
@@ -138,10 +139,11 @@ H_c = mtx_c @ H_c
 ansy,ansx,mask = decode_graycode(path)
 
 print(ansx.shape[:2])
+plt.subplot(2,1,1)
 plt.imshow(ansx)
-plt.show()
+plt.subplot(2,1,2)
 plt.imshow(ansy)
-plt.show()
+plt.savefig('decode_gray.png')
 
 img = cv2.imread(path+'/sample_data/graycode/41.png')
 cy, cx = np.where(mask == 255)
@@ -157,11 +159,6 @@ print(H_p.shape, H_c.shape)
 points = cv2.triangulatePoints(H_c,H_p,camera,projector)
 world_p = cv2.convertPointsFromHomogeneous(points.T.reshape(-1,1,4))        
 x,y,z =  world_p.reshape(-1,3).T
-print(x,y,z)
-
-
-# In[39]:
-
 
 
 xyzrgb = np.zeros((np.size(x),6))
@@ -177,11 +174,7 @@ pcd.points = o3d.utility.Vector3dVector(xyzrgb[:,:3])
 pcd.colors = o3d.utility.Vector3dVector(xyzrgb[:,3:])
 o3d.io.write_point_cloud(path+'/sample_data/data.ply',pcd)
 pcd_load = o3d.io.read_point_cloud(path+'/sample_data/data.ply')
-o3d.visualization.draw_geometries([pcd_load])
-
-
-# In[ ]:
-
+#o3d.visualization.draw_geometries([pcd_load])
 
 
 
