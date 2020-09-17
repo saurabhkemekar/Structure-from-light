@@ -38,4 +38,4 @@ def Camera_calibration(path):
 	ret,mtx_c,dist_c,rvec_c,tvec_c = cv2.calibrateCamera(objpoints,imgpoints,gray.shape[::-1],None,None)
 	print('camera matrix')
 	print(mtx_c, ret)
-	return mtx_c
+	return mtx_c,dist_c

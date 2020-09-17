@@ -35,25 +35,28 @@ def arrange_points(points):
 
 
 path = os.getcwd()
-mtx_c = Camera_calibration(path)
+mtx_c,dist_c = Camera_calibration(path)
+objp = np.zeros((9 * 7, 3), np.float32)
+objp[:, :2] = np.mgrid[0:9, 0:7].T.reshape(-1, 2) * 50.33
+
 img = cv2.imread(path+'/sample_data/camera_pose.png')
 gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 ret,corners = cv2.findChessboardCorners(gray ,(9,7),None)
 corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 imgpoints  = np.array(corners,np.float32)
 flag,rvec_c,tvec_c = cv2.solvePnP(objp,imgpoints,mtx_c,dist_c)
-H_c = np.zeros((3,3))
+Hc = np.zeros((3,3))
 world_points = []
 R,_ = cv2.Rodrigues(rvec_c)
 Hc[:,:2] = R[:,:2]
 Hc[:,2] = tvec_c.transpose()[0]
 Hc = mtx_c @ Hc
 inv_Hc = np.linalg.inv(Hc)
-print("Projection Matrix ",Hc)
+print("Homography Matrix ",Hc)
 
 # projector points --- projector resolution was set to 3:4
+print("Projector Calibration")
 pose = cv2.imread(path+'/sample_data/chess.png')
-print(pose.shape)
 gray = cv2.cvtColor(pose,cv2.COLOR_BGR2GRAY)
 ret,corners = cv2.findChessboardCorners(gray,(15,11),None)
 if ret:
@@ -61,9 +64,6 @@ if ret:
         corners = order_points(corners)    
         _ = cv2.drawChessboardCorners(pose,(15,11),corners,ret)
         img_points= np.array(corners,np.float32)    # these will be a points in projector
-        print(img_points.shape)
-plt.imshow(pose) 
-plt.show()
 
 
 fname = os.listdir(path+ "/sample_data/projector_calibration/")
@@ -94,7 +94,9 @@ for name in fname:
             cv2.waitKey(1)
 
 cv2.destroyAllWindows()
-ret,mtx_p,dist_p,rvec_p,tvec_p = cv2.calibrateCamera(world,projector_points,(800,600),None,None)
+print(np.array(world_points).shape)
+print(np.array(projector_points).shape)
+ret,mtx_p,dist_p,rvec_p,tvec_p = cv2.calibrateCamera(world_points,projector_points,(800,600),None,None)
 print(mtx_p, ret)
 
 img = cv2.imread(path +'/sample_data/projector_pose.png')
